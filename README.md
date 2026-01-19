@@ -30,6 +30,16 @@ YYYY-MM-DD - Artist - Album - Track# - Title.ext
 3. Add MP3 or FLAC files using the naming convention above
 4. Open `index.html` in any modern browser
 
+## 🌐 Dual-Mode Operation (Local + GitHub Pages)
+**Smart fallback detection** - works everywhere:
+- Local dev server → Uses directory listing (fast)
+- GitHub Pages/Netlify → Uses GitHub API (dynamic)
+
+### 🔧 Repo Configuration
+**Update line 8** in `loadTracks()` for your repo:
+`const repo = 'YOUR_USERNAME/YOUR_REPO_NAME';  // e.g. 'tgnoil/site'`
+`const branch = 'main';  // or 'master'`
+
 ## ✏️ Customization
 Edit the `<style>` in the AudioPlayer constructor or modify:
 
