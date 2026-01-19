@@ -267,67 +267,98 @@
 
 
     async loadTracks(folder) {
-    try {
-        const response = await fetch(folder);
-        const dirText = await response.text();
-
-        // MP3 + FLAC support - simple approach
-        const audioMatches = [...dirText.matchAll(/href="([^"]*\.(?:mp3|flac))"/gi)];
-        const tracks = audioMatches.map(match => {
-        const encodedFilename = match[1];
-        const decodedFilename = decodeURIComponent(encodedFilename);
+      try {
+        // STEP 1: Try local directory scrape first (works on local dev servers)
+        let tracks = [];
         
-        const parsed = this.parseFilename(decodedFilename);
-        return {
-            url: folder + encodedFilename,
-            filename: decodedFilename,
-            ...parsed
-        };
-        });
-
-        if (tracks.length === 0) {
-        tracks.push(
-            { url: `${folder}2025-01-13%20-%20flat%20broke%20-%201111%20-%2001%20-%20cozumel%20%28ext%29.mp3`, 
-            filename: '2025-01-13 - flat broke - 1111 - 01 - cozumel (ext).mp3',
-            date: '2025-01-13', artist: 'flat broke', album: '1111', 
-            trackNum: 1, title: 'cozumel (ext)', displayTitle: 'cozumel (ext)' }
-        );
+        try {
+          const response = await fetch(folder);
+          if (response.ok) {
+            const dirText = await response.text();
+            const audioMatches = [...dirText.matchAll(/href="([^"]*\.(?:mp3|flac))"/gi)];
+            tracks = audioMatches.map(match => {
+              const encodedFilename = match[1];
+              const decodedFilename = decodeURIComponent(encodedFilename);
+              const parsed = this.parseFilename(decodedFilename);
+              return {
+                url: folder + encodedFilename,
+                filename: decodedFilename,
+                ...parsed
+              };
+            });
+          }
+        } catch (e) {
+          console.log('Local directory scrape failed, trying GitHub API...');
         }
-
+    
+        // STEP 2: Fallback to GitHub API if no tracks found
+        if (tracks.length === 0) {
+          console.log('Using GitHub API for track listing...');
+          const repo = 'tgnoil/site';  // UPDATE FOR YOUR USERS
+          const branch = 'main';
+          const path = 'music';
+          
+          const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
+          const apiResponse = await fetch(apiUrl);
+          
+          if (apiResponse.ok) {
+            const files = await apiResponse.json();
+            const audioFiles = files.filter(file => file.name.match(/\.(mp3|flac)$/i));
+            
+            tracks = audioFiles.map(file => {
+              const decodedFilename = decodeURIComponent(file.name);
+              const parsed = this.parseFilename(decodedFilename);
+              return {
+                url: file.download_url,
+                filename: decodedFilename,
+                ...parsed
+              };
+            });
+          }
+        }
+    
+        // STEP 3: Final fallback (hard-coded demo track)
+        if (tracks.length === 0) {
+          tracks.push({
+            url: `${folder}2025-01-13%20-%20flat%20broke%20-%201111%20-%2001%20-%20cozumel%20%28ext%29.mp3`,
+            filename: '2025-01-13 - flat broke - 1111 - 01 - cozumel (ext).mp3',
+            date: '2025-01-13', artist: 'flat broke', album: '1111',
+            trackNum: 1, title: 'cozumel (ext)', displayTitle: 'cozumel (ext)'
+          });
+        }
+    
         this.tracks = tracks;
         
-        // ⭐ SURGICAL INSERTION #1: Compute album base dates (earliest track per album)
+        // Same album sorting + render logic...
         const albumDates = {};
         this.tracks.forEach(t => {
-        const key = `${t.artist}|${t.album}`;
-        if (!albumDates[key] || t.date < albumDates[key]) {
+          const key = `${t.artist}|${t.album}`;
+          if (!albumDates[key] || t.date < albumDates[key]) {
             albumDates[key] = t.date;
-        }
+          }
         });
-        // Attach albumDate to each track
         this.tracks.forEach(t => {
-        const key = `${t.artist}|${t.album}`;
-        t.albumDate = albumDates[key];
+          const key = `${t.artist}|${t.album}`;
+          t.albumDate = albumDates[key];
         });
         
         this.sortTracks();
         this.renderPlaylist();
-
-        // ⭐ AUTO-LOAD FIRST TRACK (PAUSED STATE)
+    
+        // Auto-load first track (paused)
         if (this.tracks.length > 0) {
           const firstTrack = this.tracks[0];
           this.currentTrack = firstTrack.url;
           this.nowPlayingEl.textContent = `${firstTrack.artist} - ${firstTrack.title}`;
           this.audio.src = firstTrack.url;
-          this.playPauseBtn.textContent = '▶'; // SHOW PLAY BUTTON
+          this.playPauseBtn.textContent = '▶';
           this.currentTrackEl.textContent = '0:00 / 0:00';
         }
-
-
-    } catch (e) {
+      } catch (e) {
         console.error('Could not load tracks:', e);
+      }
     }
-    }
+
 
 
     sortTracks() {
@@ -496,3 +527,4 @@ togglePlay() {
 
 </body>
 </html>
+
