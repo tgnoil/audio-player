@@ -10,11 +10,9 @@ A compact, dependency-light HTML audio player that automatically organizes your 
 YYYY-MM-DD - Artist - Album - Track# - Title.ext
 
 
-**Examples**
+**Example**
 
 2025-01-13 - flat broke - 1111 - 01 - cozumel (ext).mp3
-2025-03-22 - The Band - Debut Album - 01 - First Track.mp3
-2025-03-22 - The Band - Debut Album - 02 - Second Track.flac
 
 
 **How it works**
